@@ -2,54 +2,239 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Agent Chat</title>
+    <title>Biscord Chat</title>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <style>
-        .message {
-            margin-bottom: 10px;
+        html {
+            height: 100%;
+            background-color: #313338;
+            color: #DBDED7;
+            font-family: 'Open Sans', sans-serif;
+            display: flex;
+            justify-content: center;
         }
+
+        body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 800px;
+            justify-content: space-between;
+        }
+
         #chat {
-            max-height: 400px;
             overflow-y: auto;
-            border: 1px solid #ccc;
-            padding: 10px;
+            flex: 1;
+        }
+
+        ::-webkit-scrollbar-track {
+            border-radius: 100px;
+            background: #2B2D31;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            border-radius: 100px;
+            background: #1A1B1E;
+        }
+
+        .message-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1.0625rem;
+            min-height: 2.75rem;
+        }
+
+        .message-container:hover {
+            background-color: #2E3035;
+        }
+
+        .avatar-container {
+            display: flex;
+            min-width: 72px;
+            justify-content: center;
+        }
+
+        .avatar-container > img {
+            border-radius: 50%;
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .header-container {
+            display: flex;
+            justify-content: flex-start;
+            gap: 8px;
+        }
+
+        .message {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            word-wrap: normal;
+            word-break: break-word;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 1.0625rem;
+            margin-bottom: 24px;
+            background-color: #383A40;
+            border-radius: 8px;
+            padding-inline: 8px;
+        }
+
+        input {
+            flex: 1px;
+            background-color: transparent;
+            color: #DBDED7;
+            height: 44px;
+            border: 0;
+        }
+
+        input:focus {
+            outline: none;
+        }
+
+        ::placeholder {
+            color: #5F616A;
+            opacity: 1; /* Firefox */
         }
     </style>
 </head>
 <body>
-    <h1>Chat with Agents</h1>
-    <div id="chat"></div>
-    <input type="text" id="topic_input" placeholder="Enter a topic..." autocomplete="off"/>
-    <button onclick="startConversation()">Start Conversation</button>
+<h1>#biscord-chat</h1>
+<div id="chat"></div>
+<div class="input-row">
+    <input type="text" id="topic_input" placeholder="Message #biscord-chat" autocomplete="off"/>
+    <!--    <button onclick="startConversation()">Start Conversation</button>-->
+</div>
 
-    <script>
-        var socket = io.connect('http://127.0.0.1:5000');
-        var currentMessageContainer = null;
-        var currentRole = null;
+<script>
+    console.log(getCurrentFormattedTime());
 
-        socket.on('new_message', function(msg) {
-            var chat = document.getElementById('chat');
+    var socket = io.connect('http://127.0.0.1:5000');
+    var currentMessage = null;
+    var currentMessageContainer = null;
+    var currentAvatarContainer = null;
+    var currentMainContainer = null;
+    var currentHeaderContainer = null;
+    var currentRole = null;
 
-            // Check if the role has changed or if there is no current message container
-            if (currentRole !== msg.role || !currentMessageContainer) {
-                // Create a new message container for each new message
-                currentMessageContainer = document.createElement('div');
-                currentMessageContainer.className = 'message';
-                chat.appendChild(currentMessageContainer);
-                currentRole = msg.role;
-            }
+    const avatarStyles = [
+        'adventurer', 'adventurer-neutral', 'avataaars', 'avataaars-neutral', 'big-ears', 'big-ears-neutral',
+        'big-smile', 'bottts', 'bottts-neutral', 'croodles', 'croodles-neutral', 'fun-emoji', 'identicon',
+        'initials', 'lorelei', 'lorelei-neutral', 'micah', 'miniavs', 'notionists', 'notionists-neutral',
+        'open-peeps', 'pixel-art', 'pixel-art-neutral'
+    ];
 
-            // Update the current message container with the new content
-            currentMessageContainer.textContent = `${msg.role}: ${msg.content}`;
-            chat.scrollTop = chat.scrollHeight;  // Scroll to the bottom
-        });
+    socket.on('new_message', function (msg) {
+        var chat = document.getElementById('chat');
 
-        function startConversation() {
-            var input = document.getElementById('topic_input');
-            var topic = input.value;
-            socket.emit('start_conversation', {topic: topic});
-            input.value = '';
+        // Check if the role has changed or if there is no current message container
+        if (currentRole !== msg.role || !currentMessage) {
+            // Create a new message container for each new message
+            currentMessageContainer = document.createElement('div');
+            currentMessageContainer.className = 'message-container';
+
+            currentAvatarContainer = document.createElement('div');
+            currentAvatarContainer.className = 'avatar-container';
+
+            // Add avatar image
+            var avatarImg = document.createElement('img');
+            avatarImg.src = getAvatarUrl(msg.role);
+            avatarImg.alt = 'avatar';
+            avatarImg.width = 50;
+            avatarImg.height = 50;
+            currentAvatarContainer.appendChild(avatarImg);
+
+            currentMainContainer = document.createElement('div');
+            currentMainContainer.className = 'main-container';
+
+            currentHeaderContainer = document.createElement('div');
+            currentHeaderContainer.className = 'header-container';
+
+            currentMessage = document.createElement('div');
+            currentMessage.className = 'message';
+            currentRole = msg.role;
+
+            currentMessageContainer.appendChild(currentAvatarContainer);
+            currentMessageContainer.appendChild(currentMainContainer);
+            currentMainContainer.appendChild(currentHeaderContainer);
+            currentMainContainer.appendChild(currentMessage);
+            chat.appendChild(currentMessageContainer);
         }
-    </script>
+
+        // Update the current message container with the new content
+        currentHeaderContainer.innerHTML = `<str style="color: ${hashStringToColor(msg.role)}">${msg.role}</str> <span style="font-weight: lighter">${getCurrentFormattedTime()}</span>`;
+        currentMessage.textContent = `${msg.content}`;
+        chat.scrollTop = chat.scrollHeight;  // Scroll to the bottom
+    });
+
+    function startConversation() {
+        var input = document.getElementById('topic_input');
+        var topic = input.value;
+        socket.emit('start_conversation', {topic: topic});
+        input.value = '';
+    }
+
+    function hashStringToIndex(str, arrayLength) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return Math.abs(hash) % arrayLength;
+    }
+
+    function getAvatarUrl(seed) {
+        const styleIndex = hashStringToIndex(seed, avatarStyles.length);
+        const selectedStyle = avatarStyles[styleIndex];
+        const baseUrl = 'https://api.dicebear.com/9.x';
+        const format = 'png';
+        return `${baseUrl}/${selectedStyle}/${format}?seed=${seed}`;
+    }
+
+    function hashStringToColor(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
+
+        let color = '#';
+        for (let i = 0; i < 3; i++) {
+            const value = (hash >> (i * 8)) & 0xFF;
+            color += ('00' + value.toString(16)).substr(-2);
+        }
+
+        return color;
+    }
+
+    function getCurrentFormattedTime() {
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+        const year = now.getFullYear();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+
+        return `${day} /${month}/${year} ${hours}:${minutes}`;
+    }
+
+    document.querySelector('input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            startConversation();
+        }
+    });
+</script>
 </body>
 </html>
